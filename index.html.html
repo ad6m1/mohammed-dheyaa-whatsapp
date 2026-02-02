@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>أهلاً بك يا علاء فتنس هذا موقعك للنشر السريع</title>
+
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #0b2440, #020617);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #fff;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(14px);
+      border-radius: 20px;
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    }
+
+    h1 {
+      font-size: 20px;
+      margin-bottom: 6px;
+    }
+
+    p {
+      font-size: 14px;
+      opacity: .85;
+      margin-bottom: 18px;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      background: #020617;
+      color: #fff;
+      border: 1px dashed rgba(255,255,255,.25);
+      margin-bottom: 14px;
+      cursor: pointer;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      background: #22c55e;
+      color: #052e16;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    /* Progress */
+    .progress-wrapper {
+      display: none;
+      margin-top: 18px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 12px;
+      background: #020617;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #22c55e, #4ade80);
+      transition: width 0.2s ease;
+    }
+
+    .progress-text {
+      margin-top: 8px;
+      font-size: 12px;
+      opacity: .8;
+    }
+
+    .footer {
+      font-size: 12px;
+      opacity: .7;
+      margin: 18px 0 10px;
+    }
+
+    .instagram-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 14px;
+      background: linear-gradient(45deg,#f58529,#dd2a7b,#8134af,#515bd4);
+      color: #fff;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .instagram-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: white;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+    <h1>أهلاً بك يا علاء فتنس هذا موقعك للنشر السريع</h1>
+    <p>ارفع صورة أو فيديو ليتم استلامه ومعالجته تلقائيًا</p>
+
+    <!-- Media Input -->
+    <input 
+      id="mediaInput" 
+      type="file" 
+      accept="video/*,image/*"
+    />
+
+    <button id="uploadBtn">رفع الملف</button>
+
+    <!-- Progress -->
+    <div class="progress-wrapper" id="progressWrapper">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-text" id="progressText">جاري الرفع...</div>
+    </div>
+
+    <div class="footer">made by Ahmed Ali</div>
+
+    <a class="instagram-btn" href="https://www.instagram.com/8jy8/" target="_blank">
+      <svg viewBox="0 0 24 24">
+        <path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm10 2a3 3 0 013 3v10a3 3 0 01-3 3H7a3 3 0 01-3-3V7a3 3 0 013-3h10zm-5 3a5 5 0 100 10 5 5 0 000-10z"/>
+      </svg>
+      Instagram
+    </a>
+  </div>
+
+<script>
+  const uploadBtn = document.getElementById("uploadBtn");
+  const mediaInput = document.getElementById("mediaInput");
+  const progressWrapper = document.getElementById("progressWrapper");
+  const progressFill = document.getElementById("progressFill");
+  const progressText = document.getElementById("progressText");
+
+  uploadBtn.addEventListener("click", () => {
+    if (!mediaInput.files.length) {
+      alert("رجاءً اختر صورة أو فيديو أولاً");
+      return;
+    }
+
+    const file = mediaInput.files[0];
+    const fileType = file.type.startsWith("image/")
+      ? "الصورة"
+      : "الفيديو";
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open(
+      "POST",
+      "https://n8n.srv1099752.hstgr.cloud/webhook-test/upload-video",
+      true
+    );
+
+    progressWrapper.style.display = "block";
+    uploadBtn.disabled = true;
+    progressText.textContent = `جاري رفع ${fileType}...`;
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        progressFill.style.width = percent + "%";
+        progressText.textContent = `جاري رفع ${fileType}... ${percent}%`;
+      }
+    };
+
+    xhr.onload = () => {
+      progressFill.style.width = "100%";
+      progressText.textContent = `تم إرسال ${fileType} بنجاح ✅`;
+      uploadBtn.disabled = false;
+    };
+
+    xhr.onerror = () => {
+      progressText.textContent = `حصل خطأ أثناء رفع ${fileType} ❌`;
+      uploadBtn.disabled = false;
+    };
+
+    xhr.send(formData);
+  });
+</script>
+
+</body>
+</html>
