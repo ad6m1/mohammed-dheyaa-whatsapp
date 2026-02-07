@@ -243,6 +243,203 @@
       line-height: 1.7;
     }
 
+    /* Profile Stats */
+    .profile-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin: 30px 0;
+      padding: 25px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(0, 245, 255, 0.2);
+      border-radius: 20px;
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px;
+      background: rgba(0, 245, 255, 0.05);
+      border-radius: 15px;
+      transition: all 0.3s;
+      border: 1px solid transparent;
+    }
+
+    .stat-item:hover {
+      background: rgba(0, 245, 255, 0.1);
+      border-color: rgba(0, 245, 255, 0.3);
+      transform: translateY(-3px);
+    }
+
+    .stat-icon {
+      width: 45px;
+      height: 45px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: white;
+      box-shadow: 0 5px 15px rgba(0, 245, 255, 0.3);
+    }
+
+    .stat-info {
+      flex: 1;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1.2;
+      text-shadow: 0 0 10px var(--glow);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Creator Info */
+    .creator-info {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 25px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(123, 47, 247, 0.2);
+      border-radius: 20px;
+      margin-bottom: 30px;
+    }
+
+    .creator-avatar {
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(135deg, var(--secondary), var(--accent));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: white;
+      box-shadow: 
+        0 0 30px rgba(123, 47, 247, 0.4),
+        inset 0 2px 0 rgba(255, 255, 255, 0.2);
+      flex-shrink: 0;
+    }
+
+    .creator-details {
+      flex: 1;
+    }
+
+    .creator-details h3 {
+      font-size: 18px;
+      color: white;
+      margin-bottom: 5px;
+      font-weight: 700;
+    }
+
+    .creator-details p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .creator-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid;
+    }
+
+    .badge-ai {
+      background: rgba(0, 245, 255, 0.1);
+      color: var(--primary);
+      border-color: rgba(0, 245, 255, 0.3);
+    }
+
+    .badge-verified {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .badge i {
+      font-size: 10px;
+    }
+
+    /* Quick Stats Dashboard */
+    .quick-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .quick-stat-card {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(0, 245, 255, 0.1);
+      border-radius: 18px;
+      transition: all 0.3s;
+    }
+
+    .quick-stat-card:hover {
+      background: rgba(0, 245, 255, 0.05);
+      border-color: rgba(0, 245, 255, 0.3);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0, 245, 255, 0.2);
+    }
+
+    .quick-stat-icon {
+      width: 55px;
+      height: 55px;
+      border-radius: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+      flex-shrink: 0;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .quick-stat-content {
+      flex: 1;
+    }
+
+    .quick-stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), white);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.2;
+      margin-bottom: 3px;
+    }
+
+    .quick-stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
     /* Disclaimer Link */
     .disclaimer-link {
       text-align: center;
@@ -724,6 +921,49 @@
       .nav {
         grid-template-columns: 1fr;
       }
+
+      .profile-stats {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 20px;
+      }
+
+      .stat-item {
+        padding: 12px;
+      }
+
+      .creator-info {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .creator-details h3 {
+        font-size: 16px;
+      }
+
+      .creator-badges {
+        justify-content: center;
+      }
+
+      .quick-stats {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .quick-stat-card {
+        padding: 16px;
+      }
+
+      .quick-stat-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 22px;
+      }
+
+      .quick-stat-value {
+        font-size: 24px;
+      }
     }
   </style>
 </head>
@@ -757,6 +997,56 @@
             </div>
             <h1>AI Creator Console</h1>
             <p>نظام نشر ذكي متقدم يعتمد على الذكاء الاصطناعي والأتمتة الكاملة</p>
+          </div>
+
+          <!-- Profile Stats -->
+          <div class="profile-stats">
+            <div class="stat-item">
+              <div class="stat-icon">
+                <i class="fab fa-instagram"></i>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">18.7K</div>
+                <div class="stat-label">متابع</div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon">
+                <i class="fas fa-photo-video"></i>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">131</div>
+                <div class="stat-label">منشور</div>
+              </div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-icon">
+                <i class="fas fa-users"></i>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value">627</div>
+                <div class="stat-label">متابَع</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Creator Info -->
+          <div class="creator-info">
+            <div class="creator-avatar">
+              <i class="fas fa-user-tie"></i>
+            </div>
+            <div class="creator-details">
+              <h3>Ahmed Ali</h3>
+              <p>Advertising Manager and AI Blogger</p>
+              <div class="creator-badges">
+                <span class="badge badge-ai">
+                  <i class="fas fa-robot"></i> AI Expert
+                </span>
+                <span class="badge badge-verified">
+                  <i class="fas fa-check-circle"></i> Verified
+                </span>
+              </div>
+            </div>
           </div>
 
           <div class="disclaimer-link">
@@ -816,6 +1106,29 @@
         <div class="app-header">
           <h1><i class="fas fa-rocket"></i> Smart Publishing</h1>
           <p>إدارة ونشر المحتوى بذكاء اصطناعي</p>
+        </div>
+
+        <!-- Quick Stats Dashboard -->
+        <div class="quick-stats">
+          <div class="quick-stat-card">
+            <div class="quick-stat-icon" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="quick-stat-content">
+              <div class="quick-stat-value">18.7K</div>
+              <div class="quick-stat-label">إجمالي المتابعين</div>
+            </div>
+          </div>
+          
+          <div class="quick-stat-card">
+            <div class="quick-stat-icon" style="background: linear-gradient(135deg, #4facfe, #00f2fe);">
+              <i class="fas fa-fire"></i>
+            </div>
+            <div class="quick-stat-content">
+              <div class="quick-stat-value">131</div>
+              <div class="quick-stat-label">محتوى منشور</div>
+            </div>
+          </div>
         </div>
 
         <!-- Connect Button -->
@@ -924,10 +1237,26 @@
   </div>
 
   <script>
+    // SHA-256 Hash Function
+    async function sha256(message) {
+      const msgBuffer = new TextEncoder().encode(message);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hashHex;
+    }
+
+    // Encrypted user credentials (SHA-256 hashed)
     const USERS = {
-      "admin@ahmedmarketing.cloud": {code: "AM-ADMIN-9007"},
-      "ali@ahmedmarketing.cloud": {code: "AM-ALI-7391"},
-      "sara@ahmedmarketing.cloud": {code: "AM-SARA-4826"}
+      "admin@ahmedmarketing.cloud": {
+        codeHash: "21817c78a3ba029c98dfa049d5edc500cda26d00d3a2c6b47cc6e7062a689ef0"
+      },
+      "ali@ahmedmarketing.cloud": {
+        codeHash: "fd3429b58f63856912aed8ca8e95f423415b61747e1aada77d17e18d1a05146f"
+      },
+      "sara@ahmedmarketing.cloud": {
+        codeHash: "f9f9131f9da09213ea32316bdf48fb9854d7c2fc04f2c8e8dbcaaa22738e731c"
+      }
     };
 
     let currentUserEmail = "";
@@ -983,14 +1312,23 @@
       document.getElementById('rememberMe').checked = true;
     }
 
-    // Login Function - FIXED
-    function login(event) {
+    // Login Function - WITH ENCRYPTION
+    async function login(event) {
       event.preventDefault();
       
       const email = document.getElementById('emailInput').value.trim().toLowerCase();
       const code = document.getElementById('codeInput').value.trim();
 
-      if (!USERS[email] || USERS[email].code !== code) {
+      // Check if email exists
+      if (!USERS[email]) {
+        alert("❌ بيانات الدخول غير صحيحة");
+        return;
+      }
+
+      // Hash the entered code and compare
+      const enteredCodeHash = await sha256(code);
+      
+      if (USERS[email].codeHash !== enteredCodeHash) {
         alert("❌ بيانات الدخول غير صحيحة");
         return;
       }
