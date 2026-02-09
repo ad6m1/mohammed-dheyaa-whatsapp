@@ -1521,7 +1521,7 @@
           ${hasValidUrl ? `
             <div style="width: 120px; height: 120px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: rgba(0,0,0,0.3);">
               ${post.file_type === 'video' ? `
-                <video src="${fileUrl}" style="width: 100%; height: 100%; object-fit: cover;" muted></video>
+                <video src="${fileUrl}" controls preload="metadata" style="width: 100%; height: 100%; object-fit: cover;"></video>
               ` : `
                 <img src="${fileUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="Preview">
               `}
@@ -1541,8 +1541,6 @@
                 </h3>
                 <div class="post-meta">
                   <span><i class="fas fa-clock"></i> ${time}</span>
-                  ${!isScheduled && post.platform ? `<span><i class="fas fa-globe"></i> ${post.platform}</span>` : ''}
-                  ${!isScheduled && post.views !== undefined ? `<span><i class="fas fa-eye"></i> ${post.views} مشاهدة</span>` : ''}
                   ${fileSize ? `<span><i class="fas fa-hdd"></i> ${fileSize}</span>` : ''}
                 </div>
               </div>
@@ -1646,7 +1644,7 @@
       }
     }
 
-    // Publish - WEBHOOK OPTIONAL + SUPABASE REQUIRED
+// Publish - WITH SUPABASE STORAGE (NO N8N NEEDED FOR PREVIEW!)
     async function publish() {
       const mediaInput = document.getElementById('mediaInput');
       const postType = document.getElementById('postType');
@@ -1677,63 +1675,77 @@
         }
       }
 
-      const fileName = mediaInput.files[0].name;
-      const fileSize = (mediaInput.files[0].size / 1024 / 1024).toFixed(2) + ' MB';
-      let cloudinaryUrl = 'pending_upload/' + fileName;
-      let webhookSuccess = false;
+      const file = mediaInput.files[0];
+      const fileName = file.name;
+      const fileSize = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+      const uniqueFileName = `${Date.now()}_${fileName}`;
+
+      statusText.innerHTML = '<div class="status loading">جار رفع الفيديو <span class="dots"><span>.</span><span>.</span><span>.</span></span></div>';
 
       try {
-        // Step 1: TRY to upload to n8n webhook (OPTIONAL)
-        statusText.innerHTML = '<div class="status loading">جار الرفع إلى n8n <span class="dots"><span>.</span><span>.</span><span>.</span></span></div>';
-        
-        const formData = new FormData();
-        formData.append("file", mediaInput.files[0]);
-        formData.append("postType", postType.value);
-        formData.append("caption", captionInput.value || "");
-        formData.append("userEmail", currentUserEmail);
-        
-        if (scheduleToggle.checked) {
-          formData.append("scheduled", "true");
-          const scheduledTime = new Date(scheduleDateTime.value);
-          formData.append("scheduleTime", scheduledTime.toISOString());
-          formData.append("timezone", "Asia/Baghdad");
-        } else {
-          formData.append("scheduled", "false");
+        // Step 1: Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('videos')
+          .upload(uniqueFileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error('فشل رفع الفيديو: ' + uploadError.message);
         }
+
+        console.log('✅ File uploaded:', uploadData);
+
+        // Step 2: Get public URL
+        const { data: urlData } = supabase.storage
+          .from('videos')
+          .getPublicUrl(uniqueFileName);
+
+        const videoURL = urlData.publicUrl;
+        console.log('📁 Video URL:', videoURL);
+
+        // Step 2.5: Send to n8n webhook for Instagram publishing
+        statusText.innerHTML = '<div class="status loading">جار إرسال لـ n8n <span class="dots"><span>.</span><span>.</span><span>.</span></span></div>';
         
         try {
-          const webhookResponse = await Promise.race([
-            fetch("https://n8n.srv1099752.hstgr.cloud/webhook/upload-videoee", {
-              method: "POST",
-              body: formData
-            }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000)) // 15 second timeout
-          ]);
+          const webhookPayload = {
+            video_url: videoURL,
+            file_name: fileName,
+            file_size: fileSize,
+            post_type: postType.value,
+            caption: captionInput.value || '',
+            user_email: currentUserEmail,
+            scheduled: scheduleToggle.checked
+          };
+          
+          if (scheduleToggle.checked) {
+            webhookPayload.schedule_time = new Date(scheduleDateTime.value).toISOString();
+            webhookPayload.timezone = 'Asia/Baghdad';
+          }
+          
+          const webhookResponse = await fetch("https://n8n.srv1099752.hstgr.cloud/webhook/uploadvideoevip", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(webhookPayload)
+          });
           
           if (webhookResponse.ok) {
-            const webhookData = await webhookResponse.json();
-            console.log('✅ Webhook success:', webhookData);
-            
-            // Try multiple possible keys for the URL
-            cloudinaryUrl = webhookData.file_url || 
-                           webhookData.cloudinary_url || 
-                           webhookData.url || 
-                           webhookData.secure_url ||
-                           webhookData.link ||
-                           cloudinaryUrl;
-            
-            webhookSuccess = true;
+            console.log('✅ Sent to n8n successfully');
           } else {
-            console.warn('⚠️ Webhook returned error status:', webhookResponse.status);
+            console.warn('⚠️ n8n webhook failed, but continuing...');
           }
         } catch (webhookError) {
-          console.warn('⚠️ Webhook failed:', webhookError.message);
+          console.warn('⚠️ Webhook error:', webhookError.message);
           // Continue anyway - webhook is optional
         }
-        
-        // Step 2: Save to Supabase (REQUIRED - ALWAYS HAPPENS)
+
         statusText.innerHTML = '<div class="status loading">جار الحفظ في قاعدة البيانات <span class="dots"><span>.</span><span>.</span><span>.</span></span></div>';
-        
+
+        // Step 3: Save to database
         if (scheduleToggle.checked) {
           // Save as scheduled post
           const scheduledTime = new Date(scheduleDateTime.value);
@@ -1745,17 +1757,17 @@
                 user_email: currentUserEmail,
                 post_type: postType.value,
                 caption: captionInput.value || '',
-                file_url: cloudinaryUrl,
+                file_url: videoURL,
                 file_type: 'video',
                 schedule_time: scheduledTime.toISOString(),
                 timezone: 'Asia/Baghdad',
                 platforms: ['instagram', 'facebook', 'tiktok'],
-                status: webhookSuccess ? 'pending' : 'pending_upload',
+                status: 'pending',
                 metadata: {
                   file_name: fileName,
                   file_size: fileSize,
-                  uploaded_at: new Date().toISOString(),
-                  webhook_success: webhookSuccess
+                  storage_path: uniqueFileName,
+                  uploaded_at: new Date().toISOString()
                 }
               }
             ])
@@ -1767,8 +1779,6 @@
           }
           
           console.log('✅ Saved to Supabase:', data);
-          console.log('📁 File URL saved:', cloudinaryUrl);
-          console.log('🎯 Webhook success:', webhookSuccess);
           
           const formattedTime = scheduledTime.toLocaleString('ar-IQ', {
             timeZone: 'Asia/Baghdad',
@@ -1780,23 +1790,13 @@
             weekday: 'long'
           });
           
-          if (webhookSuccess) {
-            statusText.innerHTML = `<div class="status success">
-              <i class="fas fa-check-circle"></i> ✅ تم بنجاح!<br><br>
-              <strong>📤 تم الرفع إلى n8n</strong><br>
-              <strong>💾 تم الحفظ في قاعدة البيانات</strong><br><br>
-              <strong>⏰ موعد النشر:</strong><br>${formattedTime}<br><br>
-              <small>📁 الملف: ${fileName} (${fileSize})</small>
-            </div>`;
-          } else {
-            statusText.innerHTML = `<div class="status success">
-              <i class="fas fa-check-circle"></i> ✅ تم الحفظ في السجل!<br><br>
-              <strong>💾 تم الحفظ في قاعدة البيانات</strong><br>
-              <small>⚠️ n8n غير متاح حالياً - سيتم الرفع لاحقاً</small><br><br>
-              <strong>⏰ موعد النشر:</strong><br>${formattedTime}<br><br>
-              <small>📁 الملف: ${fileName} (${fileSize})</small>
-            </div>`;
-          }
+          statusText.innerHTML = `<div class="status success">
+            <i class="fas fa-check-circle"></i> ✅ تم بنجاح!<br><br>
+            <strong>📤 تم رفع الفيديو إلى التخزين</strong><br>
+            <strong>💾 تم الحفظ في قاعدة البيانات</strong><br><br>
+            <strong>⏰ موعد النشر:</strong><br>${formattedTime}<br><br>
+            <small>📁 الملف: ${fileName} (${fileSize})</small>
+          </div>`;
         } else {
           // Immediate publish - save to published_posts
           const { data, error } = await supabase
@@ -1806,18 +1806,18 @@
                 user_email: currentUserEmail,
                 post_type: postType.value,
                 caption: captionInput.value || '',
-                file_url: cloudinaryUrl,
+                file_url: videoURL,
                 file_type: 'video',
                 platform: 'instagram',
-                status: webhookSuccess ? 'published' : 'pending',
+                status: 'published',
                 views: 0,
                 likes: 0,
                 comments: 0,
                 metadata: {
                   file_name: fileName,
                   file_size: fileSize,
-                  uploaded_at: new Date().toISOString(),
-                  webhook_success: webhookSuccess
+                  storage_path: uniqueFileName,
+                  uploaded_at: new Date().toISOString()
                 }
               }
             ])
@@ -1825,25 +1825,18 @@
           
           if (error) {
             console.error('Supabase error:', error);
-          } else {
-            console.log('✅ Saved to published_posts:', data);
+            throw new Error('فشل الحفظ: ' + error.message);
           }
           
-          if (webhookSuccess) {
-            statusText.innerHTML = `<div class="status success">
-              <i class="fas fa-check-circle"></i> ✅ تم النشر بنجاح!<br><br>
-              <strong>📤 تم الرفع والنشر عبر n8n</strong><br>
-              <strong>💾 تم الحفظ في السجل</strong><br><br>
-              <small>📁 الملف: ${fileName} (${fileSize})</small>
-            </div>`;
-          } else {
-            statusText.innerHTML = `<div class="status success">
-              <i class="fas fa-check-circle"></i> ✅ تم الحفظ في السجل!<br><br>
-              <strong>💾 تم الحفظ في قاعدة البيانات</strong><br>
-              <small>⚠️ n8n غير متاح حالياً</small><br><br>
-              <small>📁 الملف: ${fileName} (${fileSize})</small>
-            </div>`;
-          }
+          console.log('✅ Saved to published_posts:', data);
+          
+          statusText.innerHTML = `<div class="status success">
+            <i class="fas fa-check-circle"></i> ✅ تم النشر بنجاح!<br><br>
+            <strong>📤 تم رفع الفيديو</strong><br>
+            <strong>💾 تم الحفظ في السجل</strong><br><br>
+            <small>📁 الملف: ${fileName} (${fileSize})</small><br>
+            <small>🔗 الفيديو جاهز للعرض في السجل!</small>
+          </div>`;
         }
         
         // Reset form
