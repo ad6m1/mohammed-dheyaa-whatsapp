@@ -1076,7 +1076,7 @@
         </div>
 
         <!-- Connect Button -->
-        <a href="https://app.upload-post.com/connect?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJyaG0ud29yazFAZ21haWwuY29tIiwicHJvZmlsZV91c2VybmFtZSI6ImFsbGFmaXRuaXMiLCJleHAiOjE3NzA1OTk3MjgsImlhdCI6MTc3MDQyNjkyOH0.Z_KiS7KrLX4p_yAXgPFh-0O76fTRzbpAl8MILrOhbNc" target="_blank" style="text-decoration: none; display: block;">
+        <a href="https://app.upload-post.com/connect?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJyaG0ud29yazFAZ21haWwuY29tIiwicHJvZmlsZV91c2VybmFtZSI6Im1vaGFtbWVkX2RoZXlhYSIsImV4cCI6MTc3MTAxMzEzMywiaWF0IjoxNzcwODQwMzMzfQ.lsUSyXorYLM6CEElMuJ9dS0x7peD9gCB9TBMuhAVow4">
           <button class="btn btn-connect">
             <span>
               <i class="fas fa-link"></i>
@@ -1105,7 +1105,7 @@
               <i class="fas fa-file-video"></i>
               اختر الفيديو
             </label>
-            <input type="file" id="mediaInput" accept="video/*">
+            <input type="file" id="mediaInput" accept="image/*,video/*">
           </div>
 
           <div class="form-group">
@@ -1523,7 +1523,7 @@
               ${post.file_type === 'video' ? `
                 <video src="${fileUrl}" controls preload="metadata" style="width: 100%; height: 100%; object-fit: cover;"></video>
               ` : `
-                <img src="${fileUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="Preview">
+                <img src="${fileUrl}" style="width: 100%; height: 100%; object-fit: cover; cursor: pointer;" alt="Preview" onclick="window.open('${fileUrl}', '_blank')">
               `}
             </div>
           ` : `
@@ -1679,8 +1679,12 @@
       const fileName = file.name;
       const fileSize = (file.size / 1024 / 1024).toFixed(2) + ' MB';
       const uniqueFileName = `${Date.now()}_${fileName}`;
+      
+      // Detect file type
+      const fileType = file.type.startsWith('image/') ? 'image' : 'video';
+      const fileTypeArabic = fileType === 'image' ? 'الصورة' : 'الفيديو';
 
-      statusText.innerHTML = '<div class="status loading">جار رفع الفيديو <span class="dots"><span>.</span><span>.</span><span>.</span></span></div>';
+      statusText.innerHTML = `<div class="status loading">جار رفع ${fileTypeArabic} <span class="dots"><span>.</span><span>.</span><span>.</span></span></div>`;
 
       try {
         // Step 1: Upload to Supabase Storage
@@ -1711,9 +1715,10 @@
         
         try {
           const webhookPayload = {
-            video_url: videoURL,
+            file_url: videoURL,
             file_name: fileName,
             file_size: fileSize,
+            file_type: fileType,
             post_type: postType.value,
             caption: captionInput.value || '',
             user_email: currentUserEmail,
@@ -1758,7 +1763,7 @@
                 post_type: postType.value,
                 caption: captionInput.value || '',
                 file_url: videoURL,
-                file_type: 'video',
+                file_type: fileType,
                 schedule_time: scheduledTime.toISOString(),
                 timezone: 'Asia/Baghdad',
                 platforms: ['instagram', 'facebook', 'tiktok'],
@@ -1807,7 +1812,7 @@
                 post_type: postType.value,
                 caption: captionInput.value || '',
                 file_url: videoURL,
-                file_type: 'video',
+                file_type: fileType,
                 platform: 'instagram',
                 status: 'published',
                 views: 0,
