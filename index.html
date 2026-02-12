@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI Creator Console - بتوقيت بغداد</title>
+  <title>AI Creator Console - نظام النشر الذكي</title>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
@@ -1270,20 +1270,84 @@
       return hashHex;
     }
 
-    // Encrypted user credentials (SHA-256 hashed)
-    const USERS = {
-      "admin@ahmedmarketing.cloud": {
-        codeHash: "21817c78a3ba029c98dfa049d5edc500cda26d00d3a2c6b47cc6e7062a689ef0"
-      },
-      "ali@ahmedmarketing.cloud": {
-        codeHash: "fd3429b58f63856912aed8ca8e95f423415b61747e1aada77d17e18d1a05146f"
-      },
-      "sara@ahmedmarketing.cloud": {
-        codeHash: "f9f9131f9da09213ea32316bdf48fb9854d7c2fc04f2c8e8dbcaaa22738e731c"
+    // 🔐 SHARED DATABASE KEY
+    const USERS_DB_KEY = 'aiCreatorUsers_v2';
+
+    // Get users from shared database
+    function getUsers() {
+      const users = localStorage.getItem(USERS_DB_KEY);
+      if (!users) {
+        const defaultUsers = {
+          "controller@ahmedmarketing.cloud": {
+            name: "المالك الرئيسي",
+            codeHash: "9bfdca9597bac776ccdd7ce3b569469ad4ae3ac72a3948e1ebb6738aad736359",
+            role: "admin",
+            status: "active",
+            tempAccess: null,
+            createdAt: new Date().toISOString()
+          },
+          "ali@ahmedmarketing.cloud": {
+            name: "علي محمد",
+            codeHash: "fd3429b58f63856912aed8ca8e95f423415b61747e1aada77d17e18d1a05146f",
+            role: "user",
+            status: "active",
+            tempAccess: null,
+            createdAt: new Date().toISOString()
+          },
+          "sara@ahmedmarketing.cloud": {
+            name: "سارة أحمد",
+            codeHash: "b37278ee8ab915320c34334f2ed80013983a0e978aae1cbcce64950f055d6da4",
+            role: "user",
+            status: "active",
+            tempAccess: null,
+            createdAt: new Date().toISOString()
+          },
+          "ahmed@ahmedmarketing.cloud": {
+            name: "أحمد حسن",
+            codeHash: "ab32c2ecea6ea1b099c1fe7744c0405c2171b4114e80e3adb52bd19c912371e0",
+            role: "user",
+            status: "active",
+            tempAccess: null,
+            createdAt: new Date().toISOString()
+          }
+        };
+        localStorage.setItem(USERS_DB_KEY, JSON.stringify(defaultUsers));
+        return defaultUsers;
       }
-    };
+      return JSON.parse(users);
+    }
+
+    // Check temporary access validity
+    function checkTempAccess(user) {
+      if (!user.tempAccess) {
+        return { valid: true, expired: false };
+      }
+      
+      const expiryDate = new Date(user.tempAccess.expiryDate);
+      const now = new Date();
+      
+      if (now > expiryDate) {
+        return { 
+          valid: false, 
+          expired: true,
+          expiryDate: user.tempAccess.expiryDate,
+          daysGranted: user.tempAccess.days
+        };
+      }
+      
+      const daysRemaining = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+      
+      return { 
+        valid: true, 
+        expired: false,
+        expiryDate: user.tempAccess.expiryDate,
+        daysGranted: user.tempAccess.days,
+        daysRemaining: daysRemaining
+      };
+    }
 
     let currentUserEmail = "";
+    let currentUserRole = "";
 
     // Toggle Password Visibility
     function togglePasswordVisibility() {
@@ -1336,15 +1400,18 @@
       document.getElementById('rememberMe').checked = true;
     }
 
-    // Login Function - WITH ENCRYPTION
+    // Login Function - WITH ENCRYPTION AND TEMP ACCESS CHECK
     async function login(event) {
       event.preventDefault();
       
       const email = document.getElementById('emailInput').value.trim().toLowerCase();
       const code = document.getElementById('codeInput').value.trim();
 
+      // Get users from shared database
+      const users = getUsers();
+
       // Check if email exists
-      if (!USERS[email]) {
+      if (!users[email]) {
         alert("❌ بيانات الدخول غير صحيحة");
         return;
       }
@@ -1352,9 +1419,27 @@
       // Hash the entered code and compare
       const enteredCodeHash = await sha256(code);
       
-      if (USERS[email].codeHash !== enteredCodeHash) {
+      if (users[email].codeHash !== enteredCodeHash) {
         alert("❌ بيانات الدخول غير صحيحة");
         return;
+      }
+
+      // ✅ Check if account is disabled
+      if (users[email].status === 'disabled') {
+        alert("❌ هذا الحساب معطل. تواصل مع المدير");
+        return;
+      }
+
+      // ✅ Check temporary access
+      const tempAccessInfo = checkTempAccess(users[email]);
+      if (!tempAccessInfo.valid && tempAccessInfo.expired) {
+        alert("❌ انتهت صلاحية حسابك. تواصل مع المدير لتجديد الصلاحية");
+        return;
+      }
+
+      // ⚠️ Show warning if access is expiring soon (3 days or less)
+      if (tempAccessInfo.valid && tempAccessInfo.daysRemaining && tempAccessInfo.daysRemaining <= 3) {
+        alert(`⚠️ تنبيه: صلاحية حسابك ستنتهي خلال ${tempAccessInfo.daysRemaining} ${tempAccessInfo.daysRemaining === 1 ? 'يوم' : 'أيام'}`);
       }
 
       // Save login data if remember me is checked
@@ -1365,6 +1450,13 @@
       }
 
       currentUserEmail = email;
+      currentUserRole = users[email].role;
+      console.log('✅ Logged in as:', currentUserEmail, '| Role:', currentUserRole);
+      
+      // Log temp access info
+      if (users[email].tempAccess) {
+        console.log('⏰ Temp Access:', tempAccessInfo);
+      }
       
       // Hide login page and show app page
       document.getElementById('loginPage').classList.add('hidden');
@@ -1378,6 +1470,7 @@
     function logout() {
       clearLoginData();
       currentUserEmail = "";
+      currentUserRole = "";
       document.getElementById('appPage').classList.add('hidden');
       document.getElementById('loginPage').classList.remove('hidden');
     }
@@ -1391,12 +1484,12 @@
         document.getElementById('publishPage').classList.remove('hidden');
       } else {
         document.getElementById('historyPage').classList.remove('hidden');
-        loadHistory(); // Load data when opening history
+        loadHistory();
       }
     }
 
     // ========================================
-    // 📊 History Page Functions
+    // 📊 History Page Functions - WITH USER FILTERING ✅
     // ========================================
     
     let currentTab = 'scheduled';
@@ -1412,29 +1505,49 @@
     
     async function loadStats() {
       try {
-        // Get scheduled posts count
+        console.log('📊 Loading stats for user:', currentUserEmail);
+        
+        // ✅ Get scheduled posts count - FILTERED BY USER
         const { data: scheduledData, error: scheduledError } = await supabase
           .from('scheduled_posts')
           .select('*', { count: 'exact' })
           .eq('user_email', currentUserEmail)
           .eq('status', 'pending');
         
-        // Get published posts count
+        if (scheduledError) {
+          console.error('Scheduled error:', scheduledError);
+        }
+        
+        // ✅ Get published posts count - FILTERED BY USER
         const { data: publishedData, error: publishedError } = await supabase
           .from('published_posts')
           .select('*', { count: 'exact' })
           .eq('user_email', currentUserEmail);
         
-        // Get failed posts count
+        if (publishedError) {
+          console.error('Published error:', publishedError);
+        }
+        
+        // ✅ Get failed posts count - FILTERED BY USER
         const { data: failedData, error: failedError } = await supabase
           .from('scheduled_posts')
           .select('*', { count: 'exact' })
           .eq('user_email', currentUserEmail)
           .eq('status', 'failed');
         
+        if (failedError) {
+          console.error('Failed error:', failedError);
+        }
+        
         document.getElementById('totalScheduled').textContent = scheduledData?.length || 0;
         document.getElementById('totalPublished').textContent = publishedData?.length || 0;
         document.getElementById('totalFailed').textContent = failedData?.length || 0;
+        
+        console.log('✅ Stats loaded:', {
+          scheduled: scheduledData?.length || 0,
+          published: publishedData?.length || 0,
+          failed: failedData?.length || 0
+        });
         
       } catch (error) {
         console.error('Error loading stats:', error);
@@ -1446,10 +1559,13 @@
       const container = document.getElementById('postsListContainer');
       container.innerHTML = '<div class="status loading">جار التحميل...</div>';
       
+      console.log('📝 Loading posts for tab:', tab, 'user:', currentUserEmail);
+      
       try {
         let posts = [];
         
         if (tab === 'scheduled') {
+          // ✅ FILTERED BY USER
           const { data, error } = await supabase
             .from('scheduled_posts')
             .select('*')
@@ -1457,20 +1573,30 @@
             .eq('status', 'pending')
             .order('schedule_time', { ascending: true });
           
-          if (error) throw error;
+          if (error) {
+            console.error('Scheduled posts error:', error);
+            throw error;
+          }
           posts = data || [];
+          console.log('✅ Scheduled posts loaded:', posts.length);
           
         } else if (tab === 'published') {
+          // ✅ FILTERED BY USER
           const { data, error } = await supabase
             .from('published_posts')
             .select('*')
             .eq('user_email', currentUserEmail)
             .order('published_at', { ascending: false });
           
-          if (error) throw error;
+          if (error) {
+            console.error('Published posts error:', error);
+            throw error;
+          }
           posts = data || [];
+          console.log('✅ Published posts loaded:', posts.length);
           
         } else if (tab === 'failed') {
+          // ✅ FILTERED BY USER
           const { data, error } = await supabase
             .from('scheduled_posts')
             .select('*')
@@ -1478,8 +1604,12 @@
             .eq('status', 'failed')
             .order('created_at', { ascending: false });
           
-          if (error) throw error;
+          if (error) {
+            console.error('Failed posts error:', error);
+            throw error;
+          }
           posts = data || [];
+          console.log('✅ Failed posts loaded:', posts.length);
         }
         
         if (posts.length === 0) {
@@ -1512,7 +1642,6 @@
       const metadata = post.metadata || {};
       const fileSize = metadata.file_size || '';
       
-      // Get video/image preview
       const fileUrl = post.file_url || '';
       const hasValidUrl = fileUrl && !fileUrl.includes('pending_upload');
       
@@ -1559,7 +1688,6 @@
     }
     
     function switchTab(tab) {
-      // Update button styles
       document.getElementById('tab-scheduled').style.background = 'rgba(0, 0, 0, 0.3)';
       document.getElementById('tab-scheduled').style.border = '1px solid rgba(0, 245, 255, 0.2)';
       document.getElementById('tab-published').style.background = 'rgba(0, 0, 0, 0.3)';
@@ -1577,14 +1705,19 @@
     async function deletePost(id) {
       if (!confirm('هل أنت متأكد من حذف هذا المنشور؟')) return;
       
+      console.log('🗑️ Deleting post:', id, 'for user:', currentUserEmail);
+      
       try {
+        // ✅ Delete only if it belongs to current user - SECURITY
         const { error } = await supabase
           .from('scheduled_posts')
           .delete()
-          .eq('id', id);
+          .eq('id', id)
+          .eq('user_email', currentUserEmail);
         
         if (error) throw error;
         
+        console.log('✅ Post deleted successfully');
         alert('✅ تم الحذف بنجاح');
         loadHistory();
         
@@ -1615,11 +1748,9 @@
       if (scheduleToggle.checked) {
         scheduleGroup.classList.remove('hidden');
         
-        // Get current time in Baghdad timezone (Asia/Baghdad = UTC+3)
         const now = new Date();
         const baghdadTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Baghdad' }));
         
-        // Format for datetime-local input (YYYY-MM-DDTHH:MM)
         const year = baghdadTime.getFullYear();
         const month = String(baghdadTime.getMonth() + 1).padStart(2, '0');
         const day = String(baghdadTime.getDate()).padStart(2, '0');
@@ -1644,7 +1775,7 @@
       }
     }
 
-// Publish - WITH SUPABASE STORAGE (NO N8N NEEDED FOR PREVIEW!)
+    // Publish - WITH SUPABASE STORAGE
     async function publish() {
       const mediaInput = document.getElementById('mediaInput');
       const postType = document.getElementById('postType');
@@ -1658,13 +1789,11 @@
         return;
       }
 
-      // Validate schedule if enabled
       if (scheduleToggle.checked && !scheduleDateTime.value) {
         alert("⚠️ الرجاء تحديد وقت وتاريخ النشر");
         return;
       }
 
-      // Check if scheduled time is in the future (Baghdad time)
       if (scheduleToggle.checked) {
         const scheduledTime = new Date(scheduleDateTime.value);
         const nowBaghdad = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Baghdad' }));
@@ -1680,14 +1809,12 @@
       const fileSize = (file.size / 1024 / 1024).toFixed(2) + ' MB';
       const uniqueFileName = `${Date.now()}_${fileName}`;
       
-      // Detect file type
       const fileType = file.type.startsWith('image/') ? 'image' : 'video';
       const fileTypeArabic = fileType === 'image' ? 'الصورة' : 'الفيديو';
 
       statusText.innerHTML = `<div class="status loading">جار رفع ${fileTypeArabic} <span class="dots"><span>.</span><span>.</span><span>.</span></span></div>`;
 
       try {
-        // Step 1: Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('videos')
           .upload(uniqueFileName, file, {
@@ -1702,7 +1829,6 @@
 
         console.log('✅ File uploaded:', uploadData);
 
-        // Step 2: Get public URL
         const { data: urlData } = supabase.storage
           .from('videos')
           .getPublicUrl(uniqueFileName);
@@ -1710,7 +1836,6 @@
         const videoURL = urlData.publicUrl;
         console.log('📁 Video URL:', videoURL);
 
-        // Step 2.5: Send to n8n webhook for Instagram publishing
         statusText.innerHTML = '<div class="status loading">جار إرسال لـ n8n <span class="dots"><span>.</span><span>.</span><span>.</span></span></div>';
         
         try {
@@ -1745,14 +1870,11 @@
           }
         } catch (webhookError) {
           console.warn('⚠️ Webhook error:', webhookError.message);
-          // Continue anyway - webhook is optional
         }
 
         statusText.innerHTML = '<div class="status loading">جار الحفظ في قاعدة البيانات <span class="dots"><span>.</span><span>.</span><span>.</span></span></div>';
 
-        // Step 3: Save to database
         if (scheduleToggle.checked) {
-          // Save as scheduled post
           const scheduledTime = new Date(scheduleDateTime.value);
           
           const { data, error } = await supabase
@@ -1803,7 +1925,6 @@
             <small>📁 الملف: ${fileName} (${fileSize})</small>
           </div>`;
         } else {
-          // Immediate publish - save to published_posts
           const { data, error } = await supabase
             .from('published_posts')
             .insert([
@@ -1844,7 +1965,6 @@
           </div>`;
         }
         
-        // Reset form
         mediaInput.value = '';
         postType.value = '';
         captionInput.value = '';
@@ -1868,7 +1988,6 @@
       document.getElementById('disclaimer').style.display = 'none';
     }
 
-    // Load saved login on page load
     window.addEventListener('DOMContentLoaded', loadSavedLogin);
   </script>
 </body>
